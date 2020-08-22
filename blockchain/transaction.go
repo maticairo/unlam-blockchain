@@ -13,15 +13,17 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/maticairo/golang-blockchain/wallet"
+	"github.com/maticairo/unlam-blockchain/wallet"
 )
 
+//Transaction define la estructura de una transaccion
 type Transaction struct {
 	ID      []byte
 	Inputs  []TxInput
 	Outputs []TxOutput
 }
 
+//Serialize genera un encode de una Tx
 func (tx Transaction) Serialize() []byte {
 	var encoded bytes.Buffer
 
@@ -32,6 +34,7 @@ func (tx Transaction) Serialize() []byte {
 	return encoded.Bytes()
 }
 
+//Hash retorna un hash sha 256 de una Tx
 func (tx *Transaction) Hash() []byte {
 	var hash [32]byte
 
@@ -42,6 +45,7 @@ func (tx *Transaction) Hash() []byte {
 	return hash[:]
 }
 
+//SetID genera el ID de la Tx a partir del hash de la misma
 func (tx *Transaction) SetID() {
 	var encoded bytes.Buffer
 	var hash [32]byte
@@ -54,6 +58,7 @@ func (tx *Transaction) SetID() {
 	tx.ID = hash[:]
 }
 
+//CoinbaseTx genera una transaccion con output de 100 tokens (sirve para el bloque genesis)
 func CoinbaseTx(to, data string) *Transaction {
 	if data == "" {
 		data = fmt.Sprintf("Coins to %s", to)
@@ -68,6 +73,7 @@ func CoinbaseTx(to, data string) *Transaction {
 	return &tx
 }
 
+//NewTransaction genera una nueva Tx (obtiene wallets, genera el has de la clave pública, verifica que pueda enviar tokens, genera inputs y outputs y firma la Tx)
 func NewTransaction(from, to string, amount int, chain *BlockChain) *Transaction {
 	var inputs []TxInput
 	var outputs []TxOutput
@@ -105,10 +111,12 @@ func NewTransaction(from, to string, amount int, chain *BlockChain) *Transaction
 	return &tx
 }
 
+//IsCoinbase verifica si es una Tx base
 func (tx *Transaction) IsCoinbase() bool {
 	return len(tx.Inputs) == 1 && len(tx.Inputs[0].ID) == 0 && tx.Inputs[0].Out == -1
 }
 
+//Sign firma los inputs de cada Tx con el método de curvas elipticas
 func (tx *Transaction) Sign(privateKey ecdsa.PrivateKey, prevTXs map[string]Transaction) {
 	if tx.IsCoinbase() {
 		return
@@ -138,6 +146,7 @@ func (tx *Transaction) Sign(privateKey ecdsa.PrivateKey, prevTXs map[string]Tran
 	}
 }
 
+//TrimmedCopy obtiene una copia de la Tx para no operar sobre el puntero a la misma
 func (tx *Transaction) TrimmedCopy() Transaction {
 	var inputs []TxInput
 	var outputs []TxOutput
@@ -155,6 +164,7 @@ func (tx *Transaction) TrimmedCopy() Transaction {
 	return txCopy
 }
 
+//Verify verifica la firma de cada input a través de las coordenadas de las curvas elípticas
 func (tx *Transaction) Verify(prevTXs map[string]Transaction) bool {
 	if tx.IsCoinbase() {
 		return true
@@ -166,7 +176,7 @@ func (tx *Transaction) Verify(prevTXs map[string]Transaction) bool {
 		}
 	}
 
-	txCopy := tx.TrimmedCopy()
+	txCopy := tx.TrimmedCopy() //Se obtiene una copia para no alterar la información.
 	curve := elliptic.P256()
 
 	for inIdx, in := range txCopy.Inputs {
@@ -199,7 +209,7 @@ func (tx *Transaction) Verify(prevTXs map[string]Transaction) bool {
 	return true
 }
 
-/*Funcion para poder mostrar la transaccion por consola*/
+//String muestra una transaccion por consola
 func (tx Transaction) String() string {
 	var lines []string
 

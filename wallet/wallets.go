@@ -10,14 +10,18 @@ import (
 	"os"
 )
 
-/*No usamos badger para que sea exclusiva para la clockchain, entonces la guardamos en ./tmp*/
+/*
+	Para almacenar las wallets no usamos Badger con motivo de que esta sea exclusiva para la blockchain. En cambio las  guardamos en ./tmp
+*/
 
 const walletFile = "./tmp/wallets.data"
 
+//Wallets es un mapa de punteros a cada wallet
 type Wallets struct {
 	Wallets map[string]*Wallet
 }
 
+//CreateWallets levanta las wallets desde el archivo en /tmp
 func CreateWallets() (*Wallets, error) {
 	wallets := Wallets{}
 	wallets.Wallets = make(map[string]*Wallet)
@@ -27,6 +31,7 @@ func CreateWallets() (*Wallets, error) {
 	return &wallets, err
 }
 
+//AddWallet agrega una nueva wallet al mapa
 func (ws *Wallets) AddWallet() string {
 	wallet := MakeWallet()
 	address := fmt.Sprintf("%s", wallet.Address())
@@ -36,6 +41,7 @@ func (ws *Wallets) AddWallet() string {
 	return address
 }
 
+//GetAllAddresses itera las wallets e imprime los addresses
 func (ws *Wallets) GetAllAddresses() []string {
 	var addresses []string
 
@@ -46,10 +52,12 @@ func (ws *Wallets) GetAllAddresses() []string {
 	return addresses
 }
 
+//GetWallet retorna una wallet a partir de su address
 func (ws Wallets) GetWallet(address string) Wallet {
 	return *ws.Wallets[address]
 }
 
+//LoadFile obtiene desde el archivo en /tmp las wallets almacenadas
 func (ws *Wallets) LoadFile() error {
 	if _, err := os.Stat(walletFile); os.IsNotExist(err) {
 		return err
@@ -74,6 +82,7 @@ func (ws *Wallets) LoadFile() error {
 	return nil
 }
 
+//SaveFile almacena el archivo de wallets en /tmp
 func (ws *Wallets) SaveFile() {
 	var content bytes.Buffer
 

@@ -14,6 +14,9 @@ import (
 
 type CommandLine struct{}
 
+/*
+	Imprime el uso de la CLI
+*/
 func (cli *CommandLine) printUsage() {
 	fmt.Println("Usage:")
 	fmt.Println(" getbalance -address ADDRESS - get the balance for an address")
@@ -24,6 +27,9 @@ func (cli *CommandLine) printUsage() {
 	fmt.Println(" listaddresses - Lists the addresses in our wallet file")
 }
 
+/*
+	Si no se pasan parámetros, se imprime el uso de la CLI
+*/
 func (cli *CommandLine) validateArgs() {
 	if len(os.Args) < 2 {
 		cli.printUsage()
@@ -40,6 +46,9 @@ func (cli *CommandLine) listAddresses() {
 	}
 }
 
+/*
+	Crea una wallet desde cero y genera un address. Lo almacena en memoria.
+*/
 func (cli *CommandLine) createWallet() {
 	wallets, _ := wallet.CreateWallets()
 	address := wallets.AddWallet()
@@ -48,6 +57,9 @@ func (cli *CommandLine) createWallet() {
 	fmt.Printf("New address is: %s\n", address)
 }
 
+/*
+	Imprime la blockchain actual, mostrando el hash previo, el actual y la PoW
+*/
 func (cli *CommandLine) printChain() {
 	chain := blockchain.ContinueBlockChain("")
 	defer chain.Database.Close()
@@ -71,6 +83,9 @@ func (cli *CommandLine) printChain() {
 	}
 }
 
+/*
+	Crea una blockchain a partir de un address
+*/
 func (cli *CommandLine) createBlockChain(address string) {
 	if !wallet.ValidateAddress(address) {
 		log.Panic("Address is not Valid")
@@ -80,6 +95,9 @@ func (cli *CommandLine) createBlockChain(address string) {
 	fmt.Println("Finished!")
 }
 
+/*
+	Obtiene el balance de un address desde la blockchain
+*/
 func (cli *CommandLine) getBalance(address string) {
 	if !wallet.ValidateAddress(address) {
 		log.Panic("Address is not Valid")
@@ -99,6 +117,9 @@ func (cli *CommandLine) getBalance(address string) {
 	fmt.Printf("Balance of %s: %d\n", address, balance)
 }
 
+/*
+	Envía tokens desde un address a otro agregando la transaccion correspondiente a la blockchain
+*/
 func (cli *CommandLine) send(from, to string, amount int) {
 	if !wallet.ValidateAddress(to) {
 		log.Panic("Address is not Valid")
@@ -114,6 +135,7 @@ func (cli *CommandLine) send(from, to string, amount int) {
 	fmt.Println("Success!")
 }
 
+//Run utiliza flags para asociar parametros y argumentos a las distintas funciones. Mediante un switch llama a las funciones correspondientes y si se da un error, lo imprime por consola.
 func (cli *CommandLine) Run() {
 	cli.validateArgs()
 

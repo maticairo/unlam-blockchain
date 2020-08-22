@@ -18,16 +18,19 @@ const (
 	genesisData = "First Transaction from Genesis"
 )
 
+//BlockChain es una estructura que contiene el ultimo hash de la cadena y el puntero a la base de datos Badger
 type BlockChain struct {
 	LastHash []byte
 	Database *badger.DB
 }
 
+//BlockChainIterator ayuda a iterar los bloques almacenados en Badger
 type BlockChainIterator struct {
 	CurrentHash []byte
 	Database    *badger.DB
 }
 
+//DBexists comprueba si la base de datos existe
 func DBexists() bool {
 	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
 		return false
@@ -36,6 +39,7 @@ func DBexists() bool {
 	return true
 }
 
+//ContinueBlockChain continua la base de datos en badger
 func ContinueBlockChain(address string) *BlockChain {
 	if DBexists() == false {
 		fmt.Println("No existing blockchain found, create one!")
@@ -65,6 +69,7 @@ func ContinueBlockChain(address string) *BlockChain {
 	return &chain
 }
 
+//InitBlockChain inicia la base de datos con un coinbase y el bloque genesis, y lo actualiza en badger
 func InitBlockChain(address string) *BlockChain {
 	var lastHash []byte
 
@@ -100,6 +105,7 @@ func InitBlockChain(address string) *BlockChain {
 	return &blockchain
 }
 
+//AddBlock añande un bloque a badger
 func (chain *BlockChain) AddBlock(transactions []*Transaction) {
 	var lastHash []byte
 
@@ -126,12 +132,14 @@ func (chain *BlockChain) AddBlock(transactions []*Transaction) {
 	Handle(err)
 }
 
+//Iterator inicia el iterador de la blockchain
 func (chain *BlockChain) Iterator() *BlockChainIterator {
 	iter := &BlockChainIterator{chain.LastHash, chain.Database}
 
 	return iter
 }
 
+//Next obtiene el bloque siguiente
 func (iter *BlockChainIterator) Next() *Block {
 	var block *Block
 
@@ -150,6 +158,7 @@ func (iter *BlockChainIterator) Next() *Block {
 	return block
 }
 
+//FindUnspentTransactions verifica todas las transacciones realizadas por una pubKey
 func (chain *BlockChain) FindUnspentTransactions(pubKeyHash []byte) []Transaction {
 	var unspentTxs []Transaction
 
@@ -193,6 +202,7 @@ func (chain *BlockChain) FindUnspentTransactions(pubKeyHash []byte) []Transactio
 	return unspentTxs
 }
 
+//FindUTXO encuentra todos los outputs para una pubKey, sirve para imprimir el balance
 func (chain *BlockChain) FindUTXO(pubKeyHash []byte) []TxOutput {
 	var UTXOs []TxOutput
 	unspentTransactions := chain.FindUnspentTransactions(pubKeyHash)
@@ -207,6 +217,7 @@ func (chain *BlockChain) FindUTXO(pubKeyHash []byte) []TxOutput {
 	return UTXOs
 }
 
+//FindSpendableOutputs verifica que un address pueda enviar tokens
 func (chain *BlockChain) FindSpendableOutputs(pubKeyHash []byte, amount int) (int, map[string][]int) {
 	unspentOuts := make(map[string][]int)
 	unspentTxs := chain.FindUnspentTransactions(pubKeyHash)
@@ -231,9 +242,9 @@ Work:
 	return accumulated, unspentOuts
 }
 
-/*Funciones utilitarias para encontrar, firmar y verificar transacciones*/
-func (bc *BlockChain) FindTransaction(ID []byte) (Transaction, error) {
-	iter := bc.Iterator()
+//FindTransaction es una funcion utilitaria para encontrar una transaccion
+func (chain *BlockChain) FindTransaction(ID []byte) (Transaction, error) {
+	iter := chain.Iterator()
 
 	for {
 		block := iter.Next()
@@ -252,11 +263,12 @@ func (bc *BlockChain) FindTransaction(ID []byte) (Transaction, error) {
 	return Transaction{}, errors.New("Transaction does not exist")
 }
 
-func (bc *BlockChain) SignTransaction(tx *Transaction, privKey ecdsa.PrivateKey) {
+//SignTransaction es una funcion utilitaria para firmar una transaccion
+func (chain *BlockChain) SignTransaction(tx *Transaction, privKey ecdsa.PrivateKey) {
 	prevTXs := make(map[string]Transaction)
 
 	for _, in := range tx.Inputs {
-		prevTX, err := bc.FindTransaction(in.ID)
+		prevTX, err := chain.FindTransaction(in.ID)
 		Handle(err)
 		prevTXs[hex.EncodeToString(prevTX.ID)] = prevTX
 	}
@@ -264,11 +276,12 @@ func (bc *BlockChain) SignTransaction(tx *Transaction, privKey ecdsa.PrivateKey)
 	tx.Sign(privKey, prevTXs)
 }
 
-func (bc *BlockChain) VerifyTransaction(tx *Transaction) bool {
+//VerifyTransaction es una funcion utilitaria para verificar una transaccion
+func (chain *BlockChain) VerifyTransaction(tx *Transaction) bool {
 	prevTXs := make(map[string]Transaction)
 
 	for _, in := range tx.Inputs {
-		prevTX, err := bc.FindTransaction(in.ID)
+		prevTX, err := chain.FindTransaction(in.ID)
 		Handle(err)
 		prevTXs[hex.EncodeToString(prevTX.ID)] = prevTX
 	}
